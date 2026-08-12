@@ -265,6 +265,19 @@ section{position:relative}
 
 .note{background:var(--surface); border-left:2px solid var(--bone-faint); padding:15px 20px; margin:22px 0; font-size:14.5px}
 .note p{margin:0}
+
+/* Plain-language summary at the top of a legal page. Orientation only —
+   the numbered sections below remain the operative text. */
+.summary{border:1px solid var(--line); background:var(--surface); padding:26px 30px; margin:0 0 30px}
+.summary h2{
+  font-family:var(--body); font-size:11px; font-weight:700; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--bone-faint); margin:0 0 16px;
+}
+.summary ul{margin:0; padding-left:20px}
+.summary li{margin:9px 0; font-size:15px; color:#c9c5c0}
+.summary li strong{color:var(--bone)}
+.summary .caveat{margin:18px 0 0; padding-top:16px; border-top:1px solid var(--line-soft); font-size:13.5px; color:var(--bone-faint)}
+@media (max-width:600px){.summary{padding:22px}}
 .todo{background:#3a2f00; color:#ffdf6b; padding:1px 7px; border-radius:3px; font-weight:700}
 
 /* ---------- Motion ---------- */
