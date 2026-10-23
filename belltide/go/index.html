@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -42,16 +42,16 @@
 <div class="pointer hidden" id="pointer"><span class="arrow">⬆</span></div>
 
 <div class="card">
-  <h1 id="title">스토어로 이동 중…</h1>
-  <p class="sub" id="desc">잠시만 기다려 주세요. 자동으로 열리지 않으면 아래 버튼을 눌러 주세요.</p>
+  <h1 id="title"></h1>
+  <p class="sub" id="desc"></p>
 
   <div class="steps hidden" id="steps">
-    <div class="step"><span class="num">1</span><span>화면 오른쪽 위 <b>⋯</b> 버튼을 누르세요</span></div>
-    <div class="step"><span class="num">2</span><span><b>‘브라우저에서 열기’</b>를 누르면 Google Play가 열려요</span></div>
+    <div class="step"><span class="num">1</span><span id="step1"></span></div>
+    <div class="step"><span class="num">2</span><span id="step2"></span></div>
   </div>
 
-  <a class="btn primary hidden" id="btnStore" href="#">Google Play에서 열기</a>
-  <a class="btn hidden" id="btnWeb" href="#">웹 스토어 페이지 열기</a>
+  <a class="btn primary hidden" id="btnStore" href="#"></a>
+  <a class="btn hidden" id="btnWeb" href="#"></a>
 
   <footer>Belltide</footer>
 </div>
@@ -67,6 +67,44 @@ var APPS = {
   islandcafe: { name: "Island Cafe Romance: 3 Tiles",     play: "details?id=com.megarabbit.bluecafe" }
 };
 /* ===================== */
+
+/* ===== 화면 문구 (휴대폰 언어: 한국어·일본어, 그 외는 영어) ===== */
+var TEXT = {
+  ko: {
+    loading: "스토어로 이동 중…",
+    wait: "잠시만 기다려 주세요. 자동으로 열리지 않으면 아래 버튼을 눌러 주세요.",
+    notFound: "링크를 찾을 수 없어요", badLink: "잘못된 링크예요.",
+    blocked: "이 앱 안에서는 Google Play가 바로 열리지 않아요.",
+    step1: "화면 오른쪽 위 <b>⋯</b> 버튼을 누르세요",
+    step2: "<b>‘브라우저에서 열기’</b>를 누르면 Google Play가 열려요",
+    store: "Google Play에서 열기", web: "웹 스토어 페이지 열기",
+    android: "현재 안드로이드(Google Play)에서만 플레이할 수 있어요."
+  },
+  ja: {
+    loading: "ストアに移動しています…",
+    wait: "少々お待ちください。自動で開かない場合は下のボタンを押してください。",
+    notFound: "リンクが見つかりません", badLink: "無効なリンクです。",
+    blocked: "このアプリ内ではGoogle Playを直接開けません。",
+    step1: "画面右上の <b>⋯</b> ボタンを押してください",
+    step2: "<b>「ブラウザで開く」</b>を選ぶとGoogle Playが開きます",
+    store: "Google Playで開く", web: "ストアのWebページを開く",
+    android: "現在はAndroid(Google Play)のみでプレイできます。"
+  },
+  en: {
+    loading: "Opening the store…",
+    wait: "Please wait a moment. If nothing happens, tap the button below.",
+    notFound: "Link not found", badLink: "This link is invalid.",
+    blocked: "Google Play can't open directly inside this app.",
+    step1: "Tap the <b>⋯</b> button at the top right",
+    step2: "Choose <b>“Open in browser”</b> and Google Play will open",
+    store: "Open in Google Play", web: "Open store web page",
+    android: "Currently available on Android (Google Play) only."
+  }
+};
+var LANG = (navigator.language || "en").slice(0, 2).toLowerCase();
+var T = TEXT[LANG] || TEXT.en;
+document.documentElement.lang = TEXT[LANG] ? LANG : "en";
+/* ================================================================ */
 
 (function () {
   var q = new URLSearchParams(location.search);
@@ -84,9 +122,16 @@ var APPS = {
   var show = function (id) { $(id).classList.remove("hidden"); };
   var hide = function (id) { $(id).classList.add("hidden"); };
 
+  $("title").textContent = T.loading;
+  $("desc").textContent = T.wait;
+  $("step1").innerHTML = T.step1;
+  $("step2").innerHTML = T.step2;
+  $("btnStore").textContent = T.store;
+  $("btnWeb").textContent = T.web;
+
   if (!path) {
-    $("title").textContent = "링크를 찾을 수 없어요";
-    $("desc").textContent = "잘못된 링크예요.";
+    $("title").textContent = T.notFound;
+    $("desc").textContent = T.badLink;
     return;
   }
   document.title = app ? app.name : "Belltide";
@@ -108,7 +153,7 @@ var APPS = {
   // 외부 브라우저로 나가 달라는 안내 화면
   function escapeGuide() {
     document.body.classList.add("escape");
-    $("desc").textContent = "이 앱 안에서는 Google Play가 바로 열리지 않아요.";
+    $("desc").textContent = T.blocked;
     show("pointer"); show("steps");
     hide("btnStore");
     $("btnWeb").href = playWeb;
@@ -117,7 +162,7 @@ var APPS = {
 
   // 아이폰: 안드로이드 전용 안내
   if (isIOS) {
-    $("desc").textContent = "현재 안드로이드(Google Play)에서만 플레이할 수 있어요.";
+    $("desc").textContent = T.android;
     $("btnWeb").href = playWeb;
     show("btnWeb");
     return;
