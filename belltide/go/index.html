@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Belltide</title>
+<style>
+  :root { --bg:#f6f4ef; --card:#fff; --text:#222; --sub:#666; --accent:#1a7f5a; --line:#e3dfd6; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181a; --card:#212427; --text:#eee; --sub:#aaa; --accent:#3fbf8a; --line:#33373b; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+         min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 16px; }
+  .card { width:100%; max-width:380px; background:var(--card); border:1px solid var(--line);
+          border-radius:18px; padding:28px 22px; text-align:center; }
+  h1 { font-size:20px; margin:0 0 6px; }
+  p.sub { color:var(--sub); font-size:14px; margin:0 0 22px; line-height:1.5; }
+  .btn { display:block; width:100%; padding:15px; border-radius:12px; font-size:16px; font-weight:600;
+         text-decoration:none; margin-bottom:10px; border:1px solid var(--line); color:var(--text); background:transparent; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .guide { display:none; margin-top:18px; padding:14px; border-radius:12px; background:var(--bg);
+           font-size:13px; color:var(--sub); line-height:1.6; text-align:left; }
+  .guide b { color:var(--text); }
+  .hidden { display:none; }
+  footer { margin-top:20px; font-size:11px; color:var(--sub); }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1 id="title">스토어로 이동 중…</h1>
+  <p class="sub" id="desc">잠시만 기다려 주세요. 자동으로 열리지 않으면 아래 버튼을 눌러 주세요.</p>
+
+  <a class="btn primary hidden" id="btnStore" href="#">Google Play에서 열기</a>
+  <a class="btn hidden" id="btnChrome" href="#">Chrome으로 열기</a>
+  <a class="btn hidden" id="btnWeb" href="#">웹 스토어 페이지 열기</a>
+
+  <div class="guide" id="guide">
+    스토어가 열리지 않나요?<br>
+    화면 오른쪽 위 <b>⋯</b> 메뉴를 누른 뒤 <b>‘브라우저에서 열기’</b>(또는 ‘외부 브라우저에서 열기’)를 선택해 주세요.
+  </div>
+
+  <footer>Belltide</footer>
+</div>
+
+<script>
+/* ===== 링크 목록 =====
+   링크 형식: https://mega-rabbit.com/belltide/go/?app=키   (app 없으면 개발자 페이지)
+   play = play.google.com/store/apps/ 뒤에 오는 경로 */
+var APPS = {
+  dev:        { name: "Belltide",                         play: "dev?id=6621226786729091125" },
+  prince:     { name: "Secret Prince: Romance Puzzle",    play: "details?id=com.megarabbit.jadeaffinity" },
+  santorini:  { name: "Santorini Romance: Triple Tile",   play: "details?id=com.belltide.santorini" },
+  islandcafe: { name: "Island Cafe Romance: 3 Tiles",     play: "details?id=com.megarabbit.bluecafe" }
+};
+/* ===================== */
+
+(function () {
+  var q = new URLSearchParams(location.search);
+  var app = APPS[q.get("app") || "dev"] || null;
+  var path = app ? app.play : (q.get("id") ? "details?id=" + encodeURIComponent(q.get("id")) : "");
+
+  var ua = navigator.userAgent || "";
+  var isAndroid = /Android/i.test(ua);
+  var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var isKakao = /KAKAOTALK/i.test(ua);
+  var isInApp = isKakao || /musical_ly|Bytedance|TikTok|trill|Instagram|FBAN|FBAV|FB_IAB|Line\/|NAVER|Snapchat|Threads|; wv\)/i.test(ua);
+
+  var $ = function (id) { return document.getElementById(id); };
+  var show = function (id) { $(id).classList.remove("hidden"); };
+
+  if (!path) {
+    $("title").textContent = "링크를 찾을 수 없어요";
+    $("desc").textContent = "잘못된 링크예요.";
+    return;
+  }
+  document.title = app ? app.name : "Belltide";
+  if (app) $("title").textContent = app.name;
+
+  // 카카오톡 인앱 브라우저는 외부 브라우저로 바로 탈출
+  if (isKakao) {
+    location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+    return;
+  }
+
+  var playWeb = "https://play.google.com/store/apps/" + path;
+  var storeIntent = "intent://" + path +
+    "#Intent;scheme=market;package=com.android.vending;S.browser_fallback_url=" +
+    encodeURIComponent(playWeb) + ";end";
+  var chromeIntent = "intent://" + location.host + location.pathname + location.search +
+    "#Intent;scheme=https;package=com.android.chrome;end";
+
+  // 아이폰: 안드로이드 전용 안내
+  if (isIOS) {
+    $("desc").textContent = "현재 안드로이드(Google Play)에서만 플레이할 수 있어요.";
+    $("btnWeb").href = playWeb;
+    show("btnWeb");
+    return;
+  }
+
+  // 안드로이드 인앱 브라우저(틱톡 등): Play 스토어 앱을 직접 호출
+  if (isAndroid && isInApp) {
+    $("btnStore").href = storeIntent;
+    $("btnChrome").href = chromeIntent;
+    $("btnWeb").href = playWeb;
+    show("btnStore"); show("btnChrome"); show("btnWeb");
+    $("guide").style.display = "block";
+    location.href = storeIntent;
+    return;
+  }
+
+  // 일반 브라우저(크롬 등) 또는 PC
+  $("btnStore").href = isAndroid ? storeIntent : playWeb;
+  show("btnStore");
+  location.replace(playWeb);
+})();
+</script>
+</body>
+</html>
