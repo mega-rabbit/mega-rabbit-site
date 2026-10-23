@@ -86,9 +86,11 @@ var APPS = {
   }
 
   var playWeb = "https://play.google.com/store/apps/" + path;
-  var storeIntent = "intent://" + path +
-    "#Intent;scheme=market;package=com.android.vending;S.browser_fallback_url=" +
-    encodeURIComponent(playWeb) + ";end";
+  // 앱 상세는 market:// 로, 개발자 페이지는 market://dev 를 지원하지 않아 https 주소를 Play 스토어 앱에 직접 넘김
+  var fallback = ";S.browser_fallback_url=" + encodeURIComponent(playWeb) + ";end";
+  var storeIntent = /^dev\?/.test(path)
+    ? "intent://play.google.com/store/apps/" + path + "#Intent;scheme=https;package=com.android.vending" + fallback
+    : "intent://" + path + "#Intent;scheme=market;package=com.android.vending" + fallback;
   var chromeIntent = "intent://" + location.host + location.pathname + location.search +
     "#Intent;scheme=https;package=com.android.chrome;end";
 
