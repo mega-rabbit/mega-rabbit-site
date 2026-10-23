@@ -6,9 +6,9 @@
 <meta name="robots" content="noindex">
 <title>Belltide</title>
 <style>
-  :root { --bg:#f6f4ef; --card:#fff; --text:#222; --sub:#666; --accent:#1a7f5a; --line:#e3dfd6; }
+  :root { --bg:#f6f4ef; --card:#fff; --text:#222; --sub:#666; --accent:#1a7f5a; --line:#e3dfd6; --hi:#fff3c4; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#16181a; --card:#212427; --text:#eee; --sub:#aaa; --accent:#3fbf8a; --line:#33373b; }
+    :root { --bg:#16181a; --card:#212427; --text:#eee; --sub:#aaa; --accent:#3fbf8a; --line:#33373b; --hi:#4a4020; }
   }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text);
@@ -21,26 +21,37 @@
   .btn { display:block; width:100%; padding:15px; border-radius:12px; font-size:16px; font-weight:600;
          text-decoration:none; margin-bottom:10px; border:1px solid var(--line); color:var(--text); background:transparent; }
   .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .guide { display:none; margin-top:18px; padding:14px; border-radius:12px; background:var(--bg);
-           font-size:13px; color:var(--sub); line-height:1.6; text-align:left; }
-  .guide b { color:var(--text); }
-  .hidden { display:none; }
+  .hidden { display:none !important; }
   footer { margin-top:20px; font-size:11px; color:var(--sub); }
+
+  /* 인앱 브라우저 탈출 안내 */
+  body.escape { align-items:flex-start; padding-top:96px; }
+  .pointer { position:fixed; top:6px; right:14px; text-align:right; pointer-events:none; }
+  .pointer .arrow { font-size:46px; line-height:1; color:var(--accent); display:inline-block;
+                    animation:bob 1s ease-in-out infinite; }
+  @keyframes bob { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+  .steps { text-align:left; margin:0 0 20px; padding:16px; border-radius:14px; background:var(--hi); }
+  .steps .step { display:flex; gap:12px; align-items:flex-start; font-size:16px; line-height:1.5; }
+  .steps .step + .step { margin-top:12px; }
+  .steps .num { flex:none; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff;
+                font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+  .steps b { font-size:17px; }
 </style>
 </head>
 <body>
+<div class="pointer hidden" id="pointer"><span class="arrow">⬆</span></div>
+
 <div class="card">
   <h1 id="title">스토어로 이동 중…</h1>
   <p class="sub" id="desc">잠시만 기다려 주세요. 자동으로 열리지 않으면 아래 버튼을 눌러 주세요.</p>
 
-  <a class="btn primary hidden" id="btnStore" href="#">Google Play에서 열기</a>
-  <a class="btn hidden" id="btnChrome" href="#">Chrome으로 열기</a>
-  <a class="btn hidden" id="btnWeb" href="#">웹 스토어 페이지 열기</a>
-
-  <div class="guide" id="guide">
-    스토어가 열리지 않나요?<br>
-    화면 오른쪽 위 <b>⋯</b> 메뉴를 누른 뒤 <b>‘브라우저에서 열기’</b>(또는 ‘외부 브라우저에서 열기’)를 선택해 주세요.
+  <div class="steps hidden" id="steps">
+    <div class="step"><span class="num">1</span><span>화면 오른쪽 위 <b>⋯</b> 버튼을 누르세요</span></div>
+    <div class="step"><span class="num">2</span><span><b>‘브라우저에서 열기’</b>를 누르면 Google Play가 열려요</span></div>
   </div>
+
+  <a class="btn primary hidden" id="btnStore" href="#">Google Play에서 열기</a>
+  <a class="btn hidden" id="btnWeb" href="#">웹 스토어 페이지 열기</a>
 
   <footer>Belltide</footer>
 </div>
@@ -66,10 +77,12 @@ var APPS = {
   var isAndroid = /Android/i.test(ua);
   var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   var isKakao = /KAKAOTALK/i.test(ua);
-  var isInApp = isKakao || /musical_ly|Bytedance|TikTok|trill|Instagram|FBAN|FBAV|FB_IAB|Line\/|NAVER|Snapchat|Threads|; wv\)/i.test(ua);
+  var isTikTok = /musical_ly|Bytedance|TikTok|trill/i.test(ua);
+  var isInApp = isKakao || isTikTok || /Instagram|FBAN|FBAV|FB_IAB|Line\/|NAVER|Snapchat|Threads|; wv\)/i.test(ua);
 
   var $ = function (id) { return document.getElementById(id); };
   var show = function (id) { $(id).classList.remove("hidden"); };
+  var hide = function (id) { $(id).classList.add("hidden"); };
 
   if (!path) {
     $("title").textContent = "링크를 찾을 수 없어요";
@@ -91,8 +104,16 @@ var APPS = {
   var storeIntent = /^dev\?/.test(path)
     ? "intent://play.google.com/store/apps/" + path + "#Intent;scheme=https;package=com.android.vending" + fallback
     : "intent://" + path + "#Intent;scheme=market;package=com.android.vending" + fallback;
-  var chromeIntent = "intent://" + location.host + location.pathname + location.search +
-    "#Intent;scheme=https;package=com.android.chrome;end";
+
+  // 외부 브라우저로 나가 달라는 안내 화면
+  function escapeGuide() {
+    document.body.classList.add("escape");
+    $("desc").textContent = "이 앱 안에서는 Google Play가 바로 열리지 않아요.";
+    show("pointer"); show("steps");
+    hide("btnStore");
+    $("btnWeb").href = playWeb;
+    show("btnWeb");
+  }
 
   // 아이폰: 안드로이드 전용 안내
   if (isIOS) {
@@ -102,14 +123,18 @@ var APPS = {
     return;
   }
 
-  // 안드로이드 인앱 브라우저(틱톡 등): Play 스토어 앱을 직접 호출
+  // 틱톡: 앱 호출(intent)을 전부 막으므로 처음부터 안내 화면
+  if (isAndroid && isTikTok) {
+    escapeGuide();
+    return;
+  }
+
+  // 그 밖의 안드로이드 인앱 브라우저: Play 스토어 호출을 시도하고, 화면이 그대로면 안내로 전환
   if (isAndroid && isInApp) {
     $("btnStore").href = storeIntent;
-    $("btnChrome").href = chromeIntent;
-    $("btnWeb").href = playWeb;
-    show("btnStore"); show("btnChrome"); show("btnWeb");
-    $("guide").style.display = "block";
+    show("btnStore");
     location.href = storeIntent;
+    setTimeout(function () { if (!document.hidden) escapeGuide(); }, 1500);
     return;
   }
 
